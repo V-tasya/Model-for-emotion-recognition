@@ -6,6 +6,7 @@ IMAGES_DIR = os.path.join(DATA_DIR, 'images')
 
 IMAGE_SIZE = 48
 CHANNELS = 3
+BATCH_SIZE = 32
 
 EMOTIONS = {
   0: 'angry',
