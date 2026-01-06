@@ -43,13 +43,14 @@ def build_model(number_of_classes: int) -> tf.keras.Model:
   '''
   data_augmentation = tf.keras.Sequential([layers.RandomFlip("horizontal"), layers.RandomRotation(0.1), layers.RandomZoom(0.1),])
   base_model = MobileNetV2(input_shape=(IMAGE_SIZE, IMAGE_SIZE, CHANNELS), include_top=False, weights='imagenet')
-  base_model.trainable = False
+  base_model.trainable = True
+  for layer in base_model.layers[:100]:
+    layer.trainable = False
 
-  my_model = models.Sequential([layers.Input(shape=(IMAGE_SIZE, IMAGE_SIZE, CHANNELS)), data_augmentation, base_model,
-    layers.GlobalAveragePooling2D(), layers.Dense(256, activation="relu"), layers.BatchNormalization(), layers.Dropout(0.4),  
-    layers.Dense(number_of_classes, activation="softmax")])
-  my_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
-    loss="sparse_categorical_crossentropy", metrics=["accuracy"])
+  my_model = models.Sequential([layers.Input(shape=(IMAGE_SIZE, IMAGE_SIZE, CHANNELS)), base_model, layers.GlobalAveragePooling2D(),
+    layers.Dense(256, activation="relu"), layers.Dropout(0.5), layers.Dense(number_of_classes, activation="softmax")])
+  my_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
+      loss="sparse_categorical_crossentropy", metrics=["accuracy"])
 
   return my_model
 
