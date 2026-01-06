@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras import models
-from settings.config import IMAGES_DIR, IMAGE_SIZE, BATCH_SIZE, CHANNELS
+from settings.config import IMAGES_DIR, IMAGE_SIZE, BATCH_SIZE, CHANNELS, EPOCHS
 
 def get_datasets() -> tuple:
   '''
@@ -41,11 +41,12 @@ def build_model(number_of_classes: int) -> tf.keras.Model:
   Returns:
     my_model (tf.keras.Model): A compiled Keras model ready for training.
   '''
+  data_augmentation = tf.keras.Sequential([layers.RandomFlip("horizontal"), layers.RandomRotation(0.1), layers.RandomZoom(0.1),])
   base_model = MobileNetV2(input_shape=(IMAGE_SIZE, IMAGE_SIZE, CHANNELS), include_top=False, weights='imagenet')
   base_model.trainable = False
 
-  my_model = models.Sequential([base_model, layers.GlobalAveragePooling2D(),
-    layers.Dense(128, activation="relu"), layers.Dropout(0.3), 
+  my_model = models.Sequential([layers.Input(shape=(IMAGE_SIZE, IMAGE_SIZE, CHANNELS)), data_augmentation, base_model,
+    layers.GlobalAveragePooling2D(), layers.Dense(256, activation="relu"), layers.BatchNormalization(), layers.Dropout(0.4),  
     layers.Dense(number_of_classes, activation="softmax")])
   my_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
     loss="sparse_categorical_crossentropy", metrics=["accuracy"])
@@ -54,10 +55,13 @@ def build_model(number_of_classes: int) -> tf.keras.Model:
 
 def main() -> None:
   tr_ds, val_ds, class_names = get_datasets()
-  print(f"Classes found: {class_names}")
-  print("Datasets are ready for training.")
   model = build_model(len(class_names))
-  model.summary()
+  #print(f"Classes found: {class_names}")
+  #print("Datasets are ready for training.")
+  #model.summary()
+  early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+  history = model.fit(tr_ds, validation_data=val_ds, epochs=EPOCHS, callbacks=[early_stopping])
+  model.save('emotions_recognition_model.keras')
 
 if __name__ == '__main__':
   main()
